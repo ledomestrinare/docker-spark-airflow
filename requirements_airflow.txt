@@ -1,0 +1,7 @@
+lxml
+python-decouple
+apache-airflow
+apache-airflow-providers-apache-spark
+requests
+pandas
+python-dotenv

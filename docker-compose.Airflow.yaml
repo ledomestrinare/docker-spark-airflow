@@ -24,7 +24,7 @@
 # The following variables are supported:
 #
 # AIRFLOW_IMAGE_NAME           - Docker image name used to run Airflow.
-#                                Default: apache/airflow:2.2.5
+#                                Default: apache/airflow:2.10.3-python3.9
 # AIRFLOW_UID                  - User ID in Airflow containers
 #                                Default: 50000
 # Those configurations are useful mostly in case of standalone testing/running Airflow in test/try-out mode
@@ -38,13 +38,12 @@
 #
 # Feel free to modify this file to suit your needs.
 ---
-version: '3'
 x-airflow-common:
   &airflow-common
   # In order to add custom dependencies or upgrade provider packages you can use your extended image.
   # Comment the image line, place your Dockerfile in the directory where you placed the docker-compose.yaml
   # and uncomment the "build" line below, Then run `docker-compose build` to build the images.
-  image: airflow-spark:latest #${AIRFLOW_IMAGE_NAME:-apache/airflow:2.2.5}
+  image: airflow-spark:latest #${AIRFLOW_IMAGE_NAME:-apache/airflow:2.10.3-python3.9}
   # build: .
   environment:
     &airflow-common-env
@@ -54,10 +53,10 @@ x-airflow-common:
     AIRFLOW__CELERY__BROKER_URL: redis://:@redis:6379/0
     AIRFLOW__CORE__FERNET_KEY: ''
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
-    AIRFLOW__CORE__LOAD_EXAMPLES: 'true'
+    AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
     AIRFLOW__API__AUTH_BACKEND: 'airflow.api.auth.backend.basic_auth'
-    AWS_ACCESS_KEY: ${AWS_ACCESS_KEY}
-    AWS_SECRET_KEY: ${AWS_SECRET_KEY}
+    AIRFLOW__WEBSERVER__SECRET_KEY: '47WobAc7kV2N9b0c186UsWDwFWFsW80'
+
   volumes:
     - ./dags:/opt/airflow/dags
     - ./logs:/opt/airflow/logs
@@ -100,9 +99,9 @@ services:
     <<: *airflow-common
     command: webserver
     ports:
-      - 8080:8080
+      - 80:8080
     healthcheck:
-      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      test: ["CMD", "curl", "--fail", "http://localhost:80/health"]
       interval: 10s
       timeout: 10s
       retries: 5
@@ -173,7 +172,7 @@ services:
         }
         airflow_version=$$(gosu airflow airflow version)
         airflow_version_comparable=$$(ver $${airflow_version})
-        min_airflow_version=2.2.0
+        min_airflow_version=2.10.3-python3.9
         min_airflow_version_comparable=$$(ver $${min_airflow_version})
         if (( airflow_version_comparable < min_airflow_version_comparable )); then
           echo

@@ -1,11 +1,35 @@
 FROM bitnami/spark:3
 
 USER root
-RUN curl https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.12.231/aws-java-sdk-bundle-1.12.231.jar --output /opt/bitnami/spark/jars/aws-java-sdk-bundle-1.12.231.jar
-RUN curl https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.3.1/hadoop-aws-3.3.1.jar --output /opt/bitnami/spark/jars/hadoop-aws-3.3.1.jar
-RUN curl https://repo1.maven.org/maven2/net/java/dev/jets3t/jets3t/0.9.4/jets3t-0.9.4.jar --output /opt/bitnami/spark/jars/jets3t-0.9.4.jar
 
-COPY ./dags/spark_etl_script_docker.py /opt/bitnami/spark
+# # Baixa os JARs necessários para AWS S3
+# RUN curl -o /opt/bitnami/spark/jars/aws-java-sdk-bundle-1.12.231.jar https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.12.231/aws-java-sdk-bundle-1.12.231.jar
+# RUN curl -o /opt/bitnami/spark/jars/hadoop-aws-3.3.1.jar https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.3.1/hadoop-aws-3.3.1.jar
+# RUN curl -o /opt/bitnami/spark/jars/jets3t-0.9.4.jar https://repo1.maven.org/maven2/net/java/dev/jets3t/jets3t/0.9.4/jets3t-0.9.4.jar
 
-COPY ./requirements_copy.txt /
-RUN pip install -r /requirements_copy.txt
+# Instala o OpenJDK 17 e configura como padrão
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends openjdk-17-jdk ant ca-certificates-java && \
+    update-ca-certificates -f && \
+    apt-get clean
+
+# Define Java 17 como padrão no sistema
+RUN update-alternatives --set java /usr/lib/jvm/java-17-openjdk-amd64/bin/java
+
+# Substitui o Java do Bitnami pelo Java 17
+RUN ln -sf /usr/lib/jvm/java-17-openjdk-amd64/bin/java /opt/bitnami/java/bin/java
+
+# Define o Java 17 para o Spark via spark-env.sh
+RUN echo 'export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64' >> /opt/bitnami/spark/conf/spark-env.sh && \
+    echo 'export PATH=$JAVA_HOME/bin:$PATH' >> /opt/bitnami/spark/conf/spark-env.sh
+
+# Copia o driver JDBC do Oracle
+COPY ./files/ojdbc17.jar /opt/bitnami/spark/jars/ojdbc17.jar
+
+# Copia os DAGs e variáveis de ambiente para o Spark
+COPY ./dags /opt/bitnami/spark/dags
+COPY ./dags/local.env /opt/bitnami/spark/
+
+# Instala dependências Python necessárias
+COPY ./requirements_spark.txt /
+RUN pip install -r /requirements_spark.txt

@@ -7,6 +7,6 @@ RUN mv aws-java-sdk-bundle-1.12.227.jar /opt/spark/jars
 
 ENV PYSPARK_MAJOR_PYTHON_VERSION=3
 
-COPY ./requirements.txt .
-RUN pip3 install -r requirements.txt
+COPY ./requirements_airflow.txt .
+RUN pip3 install -r requirements_airflow.txt
 COPY ./spark_etl_script.py .
